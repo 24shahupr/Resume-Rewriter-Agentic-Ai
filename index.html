@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ResumeAgent — Professional Resume AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #050508;
+  --panel-bg: #0b0b14;
+  --card-bg: #10101c;
+  --border: #1e1e2e;
+  --accent: #8b7cf8;
+  --accent-glow: rgba(139,124,248,0.15);
+  --success: #22d4b8;
+  --error: #f06878;
+  --warning: #f0b030;
+  --text-main: #e2dff5;
+  --text-dim: #8888aa;
+  --text-muted: #555570;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(5, 5, 8, 0.8);
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--success));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: #fff;
+}
+.logo-text { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+.header-badge {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  padding: 4px 10px; border-radius: 6px;
+  background: #1a1530; color: var(--accent);
+  border: 1px solid #2e2a55;
+  text-transform: uppercase;
+}
+
+/* ── LAYOUT ── */
+.app-layout {
+  display: flex;
+  height: calc(100vh - 57px);
+}
+
+/* ── LEFT INPUT PANEL ── */
+.input-panel {
+  width: 380px;
+  min-width: 380px;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-heading {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.field-group { display: flex; flex-direction: column; gap: 8px; }
+.field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.field-input, .field-textarea {
+  width: 100%;
+  background: #08080f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 12px;
+  outline: none;
+  transition: all 0.2s;
+}
+.field-input:focus, .field-textarea:focus {
+  border-color: var(--accent);
+  background: #0d0d1a;
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+.field-textarea { min-height: 250px; line-height: 1.6; resize: none; font-family: 'DM Mono', monospace; font-size: 12px; }
+
+.run-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent) 0%, #6e5cf3 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.run-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.run-btn:active { transform: translateY(0); }
+.run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── RIGHT OUTPUT PANEL ── */
+.output-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--bg);
+}
+
+/* ── PROGRESS ── */
+.progress-container {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+}
+.progress-container.show { display: block; }
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  position: relative;
+}
+.progress-steps::before {
+  content: '';
+  position: absolute;
+  top: 14px; left: 0; right: 0;
+  height: 2px; background: var(--border);
+  z-index: 1;
+}
+.step {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 80px;
+}
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--panel-bg); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  transition: all 0.3s;
+}
+.step.active .step-dot {
+  border-color: var(--accent); background: #1a1530; color: var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow);
+  animation: pulse 2s infinite;
+}
+.step.done .step-dot {
+  border-color: var(--success); background: #0e1a18; color: var(--success);
+}
+.step-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+.step.active .step-label { color: var(--accent); }
+.step.done .step-label { color: var(--success); }
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(139,124,248,0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(139,124,248,0); }
+  100% { box-shadow: 0 0 0 0 rgba(139,124,248,0); }
+}
+
+.log-box {
+  background: #050508;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  height: 100px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  line-height: 1.6;
+}
+
+/* ── RESULTS ── */
+.results-container { display: none; flex-direction: column; gap: 30px; }
+.results-container.show { display: flex; }
+
+.score-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.score-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.score-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+}
+.score-card.original::after { background: var(--error); }
+.score-card.improved::after { background: var(--success); }
+
+.score-label { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.score-value { font-size: 56px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+.original .score-value { color: var(--error); }
+.improved .score-value { color: var(--success); }
+.score-meta { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+.delta-badge {
+  position: absolute; top: 20px; right: 20px;
+  background: rgba(34, 212, 184, 0.1);
+  color: var(--success);
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; border: 1px solid rgba(34, 212, 184, 0.2);
+}
+
+/* ── SECTION CARDS ── */
+.section-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.section-header {
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.02);
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.section-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.section-title i { color: var(--accent); }
+.section-body { padding: 20px; }
+
+/* ── COMPARISON VIEW ── */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.resume-view {
+  background: #08080f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.resume-view.original { white-space: pre-wrap; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); }
+.resume-view.rewritten { color: var(--text-main); }
+
+.rw-header { margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+.rw-name { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+.rw-contact { font-size: 12px; color: var(--text-dim); display: flex; flex-wrap: wrap; gap: 10px; }
+.rw-section-title { font-size: 12px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px 0; }
+.rw-summary { font-style: italic; color: var(--text-dim); margin-bottom: 15px; }
+.rw-item { margin-bottom: 15px; }
+.rw-item-head { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.rw-item-sub { color: var(--text-dim); font-size: 12px; margin-bottom: 6px; }
+.rw-bullets { padding-left: 18px; }
+.rw-bullets li { margin-bottom: 4px; }
+
+.skills-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-tag {
+  background: #1a1530; color: var(--accent);
+  padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;
+  border: 1px solid #2e2a55;
+}
+
+/* ── JUDGE REPORT ── */
+.judge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+.criterion-card {
+  background: #08080f;
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 3px solid var(--border);
+}
+.criterion-card.pass { border-left-color: var(--success); }
+.criterion-card.fail { border-left-color: var(--error); }
+.crit-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.crit-name { font-size: 11px; font-weight: 700; color: var(--text-dim); }
+.crit-score { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; }
+.crit-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+/* ── UTILS ── */
+.download-btn {
+  background: #1a1530; color: var(--accent);
+  border: 1px solid #2e2a55; padding: 8px 16px;
+  border-radius: 6px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 15px;
+}
+.download-btn:hover { background: var(--accent); color: #fff; }
+
+.empty-state {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--text-muted); text-align: center; gap: 15px;
+}
+.empty-icon { font-size: 40px; opacity: 0.3; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">R</div>
+    <div class="logo-text">ResumeAgent AI</div>
+  </div>
+  <div class="header-badge">v2.0 Professional</div>
+</header>
+
+<div class="app-layout">
+  <!-- Input Panel -->
+  <aside class="input-panel">
+    <div>
+      <div class="panel-heading">Target Role</div>
+      <div class="field-group">
+        <input type="text" id="target-role" class="field-input" placeholder="e.g. Senior Frontend Engineer">
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-heading">Resume Content</div>
+      <div class="field-group">
+        <textarea id="resume-text" class="field-textarea" placeholder="Paste the full raw text of the resume here..."></textarea>
+      </div>
+    </div>
+
+    <button id="run-btn" class="run-btn">
+      <span>Analyze & Rewrite</span>
+    </button>
+
+    <div id="error-box" style="display:none; color:var(--error); font-size:12px; padding:10px; background:rgba(240,104,120,0.1); border-radius:8px; border:1px solid rgba(240,104,120,0.2);"></div>
+  </aside>
+
+  <!-- Output Panel -->
+  <main class="output-panel">
+    <!-- Progress Container -->
+    <div id="progress-container" class="progress-container">
+      <div class="progress-steps">
+        <div class="step" id="step-1"><div class="step-dot">1</div><div class="step-label">Analyze</div></div>
+        <div class="step" id="step-2"><div class="step-dot">2</div><div class="step-label">Research</div></div>
+        <div class="step" id="step-3"><div class="step-dot">3</div><div class="step-label">Score</div></div>
+        <div class="step" id="step-4"><div class="step-dot">4</div><div class="step-label">Rewrite</div></div>
+      </div>
+      <div id="log-box" class="log-box"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">📄</div>
+      <div style="font-weight:700; color:var(--text-dim)">Ready to transform your resume</div>
+      <div style="font-size:13px; max-width:300px">Paste your resume and target role to begin the multi-agent AI pipeline.</div>
+    </div>
+
+    <!-- Results Area -->
+    <div id="results-container" class="results-container">
+      <!-- Score Hero -->
+      <div class="score-hero">
+        <div class="score-card original">
+          <div class="score-label">Original ATS Score</div>
+          <div id="score-original" class="score-value">0</div>
+          <div class="score-meta">Based on initial analysis</div>
+        </div>
+        <div class="score-card improved">
+          <div class="delta-badge" id="score-delta">+0%</div>
+          <div class="score-label">Optimized ATS Score</div>
+          <div id="score-improved" class="score-value">0</div>
+          <div class="score-meta">After AI rewrite & refinement</div>
+        </div>
+      </div>
+
+      <!-- Compare Section -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Transformation Comparison</div>
+          <div class="header-badge">Accuracy Guaranteed</div>
+        </div>
+        <div class="section-body">
+          <div class="compare-grid">
+            <div>
+              <div class="panel-heading" style="margin-bottom:10px">Raw Original</div>
+              <div id="view-original" class="resume-view original"></div>
+            </div>
+            <div>
+              <div class="panel-heading" style="margin-bottom:10px">AI Optimized</div>
+              <div id="view-rewritten" class="resume-view rewritten"></div>
+              <button class="download-btn" onclick="downloadResume()">
+                <span>Download .txt Resume</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gaps & Research -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Strategic Gaps</div></div>
+          <div class="section-body" id="gaps-list"></div>
+        </div>
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Skills to Acquire</div></div>
+          <div class="section-body" id="skills-to-acquire"></div>
+        </div>
+      </div>
+
+      <!-- Judge Section -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Quality Assurance Report</div>
+          <div id="judge-overall-status"></div>
+        </div>
+        <div class="section-body">
+          <div id="judge-report" class="judge-grid"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const runBtn = document.getElementById('run-btn');
+const targetInput = document.getElementById('target-role');
+const resumeInput = document.getElementById('resume-text');
+const errorBox = document.getElementById('error-box');
+const progressContainer = document.getElementById('progress-container');
+const emptyState = document.getElementById('empty-state');
+const resultsContainer = document.getElementById('results-container');
+const logBox = document.getElementById('log-box');
+
+let currentData = null;
+
+function addLog(msg, type='info') {
+  const line = document.createElement('div');
+  line.style.marginBottom = '4px';
+  const colors = { info: '#8888aa', success: '#22d4b8', error: '#f06878', warn: '#f0b030' };
+  line.style.color = colors[type] || colors.info;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function updateStep(stepNum, status) {
+  const el = document.getElementById(`step-${stepNum}`);
+  if (!el) return;
+  el.classList.remove('active', 'done');
+  if (status === 'active') el.classList.add('active');
+  if (status === 'done') el.classList.add('done');
+}
+
+runBtn.addEventListener('click', async () => {
+  const role = targetInput.value.trim();
+  const text = resumeInput.value.trim();
+
+  if (!role || !text) {
+    errorBox.textContent = "Please provide both target role and resume text.";
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  errorBox.style.display = 'none';
+  runBtn.disabled = true;
+  emptyState.style.display = 'none';
+  resultsContainer.style.display = 'none';
+  progressContainer.style.display = 'block';
+  logBox.innerHTML = '';
+  
+  [1,2,3,4].forEach(i => updateStep(i, ''));
+
+  addLog("Initializing multi-agent pipeline...");
+  
+  // Auto-detect backend URL: localhost:8000 for local development, same origin for Vercel
+  const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:8000' 
+    : '';
+  
+  const eventSource = new EventSource(`${baseUrl}/api/run?role=${encodeURIComponent(role)}&resume=${encodeURIComponent(text)}`);
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    
+    if (data.type === 'step') {
+      const { agent, message, step } = data;
+      addLog(`${agent}: ${message}`, 'info');
+      if (step) updateStep(step, 'active');
+      if (step > 1) updateStep(step-1, 'done');
+    }
+    
+    if (data.type === 'complete') {
+      updateStep(4, 'done');
+      addLog("Pipeline complete! Rendering results...", 'success');
+      eventSource.close();
+      currentData = data.report;
+      renderResults(data.report);
+      runBtn.disabled = false;
+    }
+
+    if (data.type === 'error') {
+      addLog(`Error: ${data.message}`, 'error');
+      errorBox.textContent = data.message;
+      errorBox.style.display = 'block';
+      eventSource.close();
+      runBtn.disabled = false;
+    }
+  };
+
+  eventSource.onerror = (err) => {
+    addLog("Connection lost or server error.", "error");
+    eventSource.close();
+    runBtn.disabled = false;
+  };
+});
+
+function renderResults(report) {
+  progressContainer.style.display = 'none';
+  resultsContainer.style.display = 'flex';
+
+  // Scores
+  const sOrig = report.score.overall_score || 0;
+  const sNew = report.rewritten.projected_score || 0;
+  document.getElementById('score-original').textContent = sOrig;
+  document.getElementById('score-improved').textContent = sNew;
+  
+  const delta = sNew - sOrig;
+  const deltaEl = document.getElementById('score-delta');
+  deltaEl.textContent = `${delta >= 0 ? '+' : ''}${delta}%`;
+  deltaEl.style.color = delta >= 0 ? 'var(--success)' : 'var(--error)';
+
+  // Comparison
+  document.getElementById('view-original').textContent = report.raw_resume;
+  
+  const rw = report.rewritten;
+  const pi = rw.personal_info || {};
+  
+  // Helper to safely render skill text
+  const getSkillText = (s) => {
+    if (typeof s === 'string') return s;
+    if (typeof s === 'object' && s !== null) {
+      // Handle { category: "...", skills: "..." } or similar
+      return Object.values(s).join(': ');
+    }
+    return String(s);
+  };
+
+  let rwHtml = `
+    <div class="rw-header">
+      <div class="rw-name">${pi.name || 'Candidate Name'}</div>
+      <div class="rw-contact">
+        ${pi.location ? `<span>📍 ${pi.location}</span>` : ''}
+        ${pi.email ? `<span>📧 ${pi.email}</span>` : ''}
+        ${pi.phone ? `<span>📞 ${pi.phone}</span>` : ''}
+        ${pi.linkedin ? `<span>🔗 ${pi.linkedin}</span>` : ''}
+      </div>
+      ${(pi.dob || (pi.languages && pi.languages.length > 0)) ? `
+        <div class="rw-contact" style="margin-top:5px; opacity:0.8">
+          ${pi.dob ? `<span>🎂 DOB: ${pi.dob}</span>` : ''}
+          ${(pi.languages && pi.languages.length > 0) ? `<span>🗣️ ${pi.languages.join(', ')}</span>` : ''}
+        </div>
+      ` : ''}
+    </div>
+    
+    <div class="rw-section-title">Professional Summary</div>
+    <div class="rw-summary">${rw.summary}</div>
+
+    <div class="rw-section-title">Technical Skills</div>
+    <div class="skills-tags">
+      ${(rw.skills || []).map(s => `<span class="skill-tag">${getSkillText(s)}</span>`).join('')}
+    </div>
+
+    <div class="rw-section-title">Experience & Projects</div>
+    ${(rw.experience || []).map(exp => `
+      <div class="rw-item">
+        <div class="rw-item-head">
+          <span>${exp.title}</span>
+          <span>${exp.duration}</span>
+        </div>
+        <div class="rw-item-sub">${exp.company}</div>
+        <ul class="rw-bullets">
+          ${(exp.bullets || []).map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('')}
+
+    <div class="rw-section-title">Education</div>
+    ${(rw.education || []).map(edu => `
+      <div class="rw-item">
+        <div class="rw-item-head">
+          <span>${edu.degree}</span>
+          <span>${edu.duration}</span>
+        </div>
+        <div class="rw-item-sub">${edu.institution}</div>
+        ${edu.details ? `<div class="rw-item-sub" style="font-style:italic; margin-top:2px">${edu.details}</div>` : ''}
+      </div>
+    `).join('')}
+
+    ${(rw.certifications && rw.certifications.length > 0) ? `
+      <div class="rw-section-title">Certifications</div>
+      <ul class="rw-bullets">
+        ${rw.certifications.map(c => `<li>${c}</li>`).join('')}
+      </ul>
+    ` : ''}
+
+    ${(rw.achievements && rw.achievements.length > 0) ? `
+      <div class="rw-section-title">Achievements</div>
+      <ul class="rw-bullets">
+        ${rw.achievements.map(a => `<li>${a}</li>`).join('')}
+      </ul>
+    ` : ''}
+
+    ${(rw.strengths && rw.strengths.length > 0) ? `
+      <div class="rw-section-title">Strengths</div>
+      <div class="skills-tags">
+        ${rw.strengths.map(s => `<span class="skill-tag" style="background:#152a1a; color:#22d4b8; border-color:#1e453e">${s}</span>`).join('')}
+      </div>
+    ` : ''}
+  `;
+  
+  document.getElementById('view-rewritten').innerHTML = rwHtml;
+
+  // Gaps
+  const gapsList = document.getElementById('gaps-list');
+  gapsList.innerHTML = (report.score.gaps || []).map(g => `
+    <div style="margin-bottom:10px; font-size:12px; display:flex; gap:10px">
+      <span style="color:var(--error)">●</span>
+      <span>${g}</span>
+    </div>
+  `).join('');
+
+  // Skills to Acquire
+  const skillsToAcquire = document.getElementById('skills-to-acquire');
+  skillsToAcquire.innerHTML = (rw.skills_to_acquire || []).map(s => `
+    <span class="skill-tag" style="background:#1a1530; color:var(--accent); margin:0 4px 4px 0; display:inline-block">${s}</span>
+  `).join('');
+
+  // Judge Report
+  const judge = rw._judge || {};
+  const statusEl = document.getElementById('judge-overall-status');
+  statusEl.innerHTML = `
+    <div class="header-badge" style="color:${judge.passed ? 'var(--success)' : 'var(--error)'}; border-color:${judge.passed ? 'rgba(34,212,184,0.3)' : 'rgba(240,104,120,0.3)'}">
+      ${judge.passed ? 'PASSED' : 'REVISION NEEDED'} — ${judge.weighted_score.toFixed(1)}/10
+    </div>
+  `;
+
+  const reportEl = document.getElementById('judge-report');
+  reportEl.innerHTML = (judge.criterion_scores || []).map(c => `
+    <div class="criterion-card ${c.passed ? 'pass' : 'fail'}">
+      <div class="crit-head">
+        <span class="crit-name">${c.criterion}</span>
+        <span class="crit-score">${c.score}/10</span>
+      </div>
+      <div class="crit-desc">${c.rationale || ''}</div>
+    </div>
+  `).join('');
+}
+
+function downloadResume() {
+  if (!currentData) return;
+  const rw = currentData.rewritten;
+  const pi = rw.personal_info || {};
+  
+  const getSkillText = (s) => {
+    if (typeof s === 'string') return s;
+    if (typeof s === 'object' && s !== null) return Object.values(s).join(': ');
+    return String(s);
+  };
+  
+  let text = `${pi.name || 'Resume'}\n`;
+  text += `${pi.location || ''} | ${pi.email || ''} | ${pi.phone || ''}\n`;
+  if (pi.linkedin) text += `${pi.linkedin}\n`;
+  if (pi.dob) text += `DOB: ${pi.dob}\n`;
+  if (pi.languages?.length > 0) text += `Languages: ${pi.languages.join(', ')}\n`;
+  
+  text += `\nPROFESSIONAL SUMMARY\n${rw.summary}\n`;
+  
+  text += `\nTECHNICAL SKILLS\n`;
+  text += (rw.skills || []).map(s => getSkillText(s)).join(', ') + '\n';
+  
+  text += `\nEXPERIENCE & PROJECTS\n`;
+  (rw.experience || []).forEach(exp => {
+    text += `\n${exp.title}\n${exp.company} | ${exp.duration}\n`;
+    (exp.bullets || []).forEach(b => text += `• ${b}\n`);
+  });
+  
+  text += `\nEDUCATION\n`;
+  (rw.education || []).forEach(edu => {
+    text += `\n${edu.degree}\n${edu.institution} | ${edu.duration}\n`;
+    if (edu.details) text += `${edu.details}\n`;
+  });
+  
+  if (rw.certifications?.length > 0) {
+    text += `\nCERTIFICATIONS\n`;
+    rw.certifications.forEach(c => text += `• ${c}\n`);
+  }
+  
+  if (rw.achievements?.length > 0) {
+    text += `\nACHIEVEMENTS\n`;
+    rw.achievements.forEach(a => text += `• ${a}\n`);
+  }
+
+  if (rw.strengths?.length > 0) {
+    text += `\nSTRENGTHS\n`;
+    text += rw.strengths.join(', ') + '\n';
+  }
+  
+  text += `\n\nGenerated by ResumeAgent AI on ${new Date().toLocaleDateString()}\n`;
+  
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(pi.name || 'Resume').replace(/\s+/g, '_')}_Rewritten.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

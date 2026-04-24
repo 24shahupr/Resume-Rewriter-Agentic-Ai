@@ -1,0 +1,8 @@
+groq
+tavily-python
+python-dotenv
+asyncio
+pydantic
+fastapi
+uvicorn
+python-multipart
